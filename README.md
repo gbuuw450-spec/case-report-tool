@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 사건조사서 작성 툴
 
-## Getting Started
+행정심판 사건의 **청구이유서·답변서·증거서류(PDF)** 를 올리면 글자로 바꿔 주고, 단어로 찾으면 **문서명·쪽수·원문**을 알려 주며, 고른 원문(과 올린 서류 전문)을 **사건조사서 초안(워드·한글 파일)** 으로 모아 주는 1인용 도구입니다.
 
-First, run the development server:
+> 조사자가 "그 주장이 어느 문서 몇 쪽에 있더라?"를 찾느라 서류를 계속 다시 여는 불편을 없애기 위해 만들었습니다.
+
+- 사용자: 사건조사서를 작성하는 조사자 1인 (로그인 없음)
+- 핵심 원칙: **서류는 컴퓨터 밖으로 나가지 않는다 / 원문을 그대로 보여 주고 요약하거나 새로 쓰지 않는다 / 모든 결과에 문서명과 쪽수를 붙인다**
+
+## 주요 기능
+
+| 기능 | 설명 |
+|---|---|
+| 서류 올리기 | 청구이유서, 답변서, 청구인·처분청 증거서류(증거 이름 입력)를 구분해 올립니다. 한 사건 합계 100쪽까지, 같은 내용의 PDF 중복은 막습니다. |
+| 글자 변환 | 글자가 든 PDF는 쪽별로 변환하고, 스캔 PDF는 브라우저에서 글자 인식(OCR)을 합니다. 인식이 불확실한 글자는 `[인식 불확실]`로 표시합니다. |
+| 자료 찾기 | 단어를 입력하면 문서명·쪽수·원문 문장을 보여 줍니다. 없으면 추측하지 않고 "없음"이라고 표시하며, 결과마다 원본 쪽 그림으로 대조할 수 있습니다. |
+| 사건조사서 초안 | 고른 원문을 청구인 주장·처분청 의견·사실관계에 담고(서류 구분별 규칙), 올린 서류 전문도 쪽별로 자동 포함합니다. 수정해도 원문은 따로 보관하고 `수정됨`을 표시합니다. |
+| 파일 저장 | 초안을 **워드(.docx)** 와 **한글(.hwpx)** 로, 증거 목록표를 워드 표로 저장합니다. |
+| 법령 조문 찾기 | 법제처 Open API로 법령명 + 조문 번호의 조문을 가져와 "관계 법령"에 담습니다. |
+| 유사 선결정례·판결 찾기 | 조사자가 입력한 검색어로 조세심판원 결정·판례를 찾아 읽습니다. |
+| 사건 삭제 | 확인 창을 거쳐 올린 서류와 저장 파일을 이 컴퓨터에서 완전히 지웁니다. |
+
+## 보안 설계
+
+실제 사건 서류에는 개인정보가 들어 있을 수 있어서 다음을 지킵니다.
+
+- 서류의 모든 처리(변환·검색·OCR·저장)는 **이 컴퓨터 안에서만** 합니다. 외부 AI 서비스를 쓰지 않습니다.
+- 앱은 `127.0.0.1`에서만 열려 같은 네트워크의 다른 컴퓨터가 접속할 수 없습니다.
+- 인터넷으로 나가는 요청은 **법제처 연결 하나뿐**이며, 조사자가 입력한 법령명·조문 번호·검색어·사례 번호만 보냅니다. (인터넷을 막은 상태에서도 나머지 전체 흐름이 동작하는 것을 시험했습니다.)
+- 법제처 인증 값(`LAW_API_KEY`)은 서버에서만 읽으며 화면과 기록에 남기지 않습니다.
+
+## 인터넷 시연 화면에 대해
+
+이 저장소는 심사를 위해 Vercel에 시연용으로 배포되어 있습니다. 시연 주소에서는 **서류 올리기가 막혀 있고** 법령 조문·유사 사례 찾기 화면만 써 볼 수 있습니다. (여러 방문자가 함께 쓰는 공개 주소에 실제 서류를 올리지 않게 하기 위해서이며, 법제처가 허용한 접속 위치가 아니면 이 두 기능도 "찾을 수 없습니다"로 안내될 수 있습니다.) 전체 기능은 아래 방법으로 내 컴퓨터에서 실행해야 합니다.
+
+## 실행 방법 (이 컴퓨터에서)
+
+필요한 것: Node.js 22 이상
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run build
+npm run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 `http://127.0.0.1:3000`을 엽니다. 개발 중에는 `npm run dev`를 쓸 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+법령 조문·유사 사례 찾기를 쓰려면 [법제처 국가법령정보 공동활용](https://open.law.go.kr)에서 인증 값을 발급받아 `.env`에 넣습니다. (이 기능 없이도 나머지는 모두 동작합니다.)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+LAW_API_KEY=발급받은_값
+```
 
-## Learn More
+`sample-data/` 폴더에 시험해 볼 수 있는 **가상 사건 서류(PDF)** 가 있습니다. 올리는 방법은 [sample-data/README.md](sample-data/README.md)를 보세요. (인물·금액·번호는 모두 가상입니다.)
 
-To learn more about Next.js, take a look at the following resources:
+## 사용 기술
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Next.js 16 (App Router), React, Tailwind CSS, Node 내장 SQLite, pdf.js(PDF 읽기·쪽 그림), tesseract.js(글자 인식), docx(워드 파일), JSZip(한글 hwpx 파일), 법제처 Open API
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 기획·계획 문서
 
-## Deploy on Vercel
+- [PRD.md](PRD.md) — 기획서: 문제, 목표, 기능과 지킬 규칙, 범위, 보안
+- [PLAN.md](PLAN.md) — 계획서: 작업 순서와 진행, 요구사항, 위험
+- [DESIGN.md](DESIGN.md) — 설계서: 구조, 화면, 데이터 흐름, 요청 목록
+- [CLAUDE.md](CLAUDE.md) — 개발 규칙
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 알려진 한계
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 스캔 서류의 글자 인식은 완벽하지 않습니다. 틀려도 `[인식 불확실]`로 잡히지 않는 경우가 있어 원본 쪽 그림과 대조해야 합니다.
+- 저장한 한글(.hwpx) 파일은 한글 프로그램에서 여는 확인을 아직 하지 못했습니다. (워드 파일은 확인함)
+- 판례 중 일부(국세법령정보시스템 출처)는 법제처가 본문을 주지 않아 법제처 사이트 링크로 안내합니다.
+- 한 사건(합계 100쪽)만 다루고 PDF만 올릴 수 있습니다. (한글 문서는 한글에서 PDF로 저장해 올립니다.)
